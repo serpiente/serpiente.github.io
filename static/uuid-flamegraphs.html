@@ -1,4 +1,4 @@
-<title>Flamegraph: UUID v4 vs bigint secuencial — INSERT en Postgres</title>
+<title>Flamegraph: UUID v4 vs sequential bigint — INSERT in Postgres</title>
 <style>
   :root{
     --ground:#14171F; --surface:#1B1F29; --surface-2:#222735;
@@ -116,64 +116,64 @@
   @media(prefers-reduced-motion:reduce){.bar{transition:none}}
 </style>
 <header><div class="wrap">
-  <div class="eyebrow">perf · cpu-clock · postgres 15 · INSERT 8M filas</div>
-  <h1>El índice se come el CPU cuando la clave es <span class="hl">aleatoria</span>.</h1>
-  <p class="sub">Dos perfiles del mismo <span class="mono">INSERT</span> en Postgres, idénticos salvo la clave primaria.
-  A la izquierda, <span class="mono">bigint</span> secuencial. A la derecha, <span class="mono">UUIDv4</span> aleatorio.
-  Mismas filas, misma tabla — sólo cambia dónde caen las inserciones en el B-tree.</p>
+  <div class="eyebrow">perf · cpu-clock · postgres 15 · INSERT 8M rows</div>
+  <h1>The index eats the CPU when the key is <span class="hl">random</span>.</h1>
+  <p class="sub">Two profiles of the same <span class="mono">INSERT</span> in Postgres, identical except for the primary key.
+  On the left, a sequential <span class="mono">bigint</span>. On the right, a random <span class="mono">UUIDv4</span>.
+  Same rows, same table — only where the inserts land in the B-tree changes.</p>
   <div class="hero">
-    <div class="stat cool"><div class="tag"><span class="dot"></span>bigint secuencial</div>
-      <div class="big">24.6%</div><div class="cap">del CPU dentro de <span class="mono">_bt_*</span></div></div>
-    <div class="stat hot"><div class="tag"><span class="dot"></span>uuid v4 aleatorio</div>
-      <div class="big">77.9%</div><div class="cap">del CPU dentro de <span class="mono">_bt_*</span></div></div>
-    <div class="hint">▼ pasá el mouse por cualquier bloque · buscá una función para resaltarla en ambos perfiles</div>
+    <div class="stat cool"><div class="tag"><span class="dot"></span>sequential bigint</div>
+      <div class="big">24.6%</div><div class="cap">of CPU inside <span class="mono">_bt_*</span></div></div>
+    <div class="stat hot"><div class="tag"><span class="dot"></span>random uuid v4</div>
+      <div class="big">77.9%</div><div class="cap">of CPU inside <span class="mono">_bt_*</span></div></div>
+    <div class="hint">▼ hover over any block · search for a function to highlight it in both profiles</div>
   </div>
 </div></header>
 
 <section><div class="wrap">
-  <h2>Dónde se va el CPU</h2>
-  <p class="lead">Porcentaje del tiempo on-CPU del backend, por función. Son medidas <em>inclusivas</em>
-  (un bloque hijo cuenta dentro de su padre), por eso no suman 100%. La asimetría es lo que importa.</p>
+  <h2>Where the CPU goes</h2>
+  <p class="lead">Percentage of the backend's on-CPU time, by function. These are <em>inclusive</em> measurements
+  (a child block counts inside its parent), so they don't add up to 100%. The asymmetry is what matters.</p>
   <div class="legend">
-    <span><span class="dot" style="background:var(--cool)"></span>secuencial</span>
+    <span><span class="dot" style="background:var(--cool)"></span>sequential</span>
     <span><span class="dot" style="background:var(--hot)"></span>uuid v4</span>
   </div>
   <div class="bars"><div class="row">
       <div class="track l"><div class="bar" data-w="24.6"><b>24.6%</b></div></div>
-      <div class="barlabel">_bt_* (inserción B-tree)<small>descenso + inserción en el índice</small></div>
+      <div class="barlabel">_bt_* (B-tree insertion)<small>descent + insert into the index</small></div>
       <div class="track r"><div class="bar" data-w="77.9"><b>77.9%</b></div></div>
     </div><div class="row">
       <div class="track l"><div class="bar" data-w="13.8"><b>13.8%</b></div></div>
-      <div class="barlabel">buffer manager<small>buscar/evictar páginas en cache</small></div>
+      <div class="barlabel">buffer manager<small>find/evict pages in cache</small></div>
       <div class="track r"><div class="bar" data-w="58.8"><b>58.8%</b></div></div>
     </div><div class="row">
       <div class="track l"><div class="bar" data-w="2.0"><b>2.0%</b></div></div>
-      <div class="barlabel">_bt_compare<small>comparar claves al bajar el árbol</small></div>
+      <div class="barlabel">_bt_compare<small>compare keys while descending the tree</small></div>
       <div class="track r"><div class="bar" data-w="12.5"><b>12.5%</b></div></div>
     </div><div class="row">
       <div class="track l"><div class="bar" data-w="20.3"><b>20.3%</b></div></div>
-      <div class="barlabel">heap_insert<small>escribir la fila en el heap</small></div>
+      <div class="barlabel">heap_insert<small>write the row into the heap</small></div>
       <div class="track r"><div class="bar" data-w="5.0"><b>5.0%</b></div></div>
     </div><div class="row">
       <div class="track l"><div class="bar" data-w="16.1"><b>16.1%</b></div></div>
-      <div class="barlabel">XLogInsert + CRC<small>armar registros de WAL</small></div>
+      <div class="barlabel">XLogInsert + CRC<small>build WAL records</small></div>
       <div class="track r"><div class="bar" data-w="4.2"><b>4.2%</b></div></div>
     </div><div class="row">
       <div class="track l"><div class="bar" data-w="26.5"><b>26.5%</b></div></div>
-      <div class="barlabel">generar UUID / random<small>pg_strong_random, etc.</small></div>
+      <div class="barlabel">generate UUID / random<small>pg_strong_random, etc.</small></div>
       <div class="track r"><div class="bar" data-w="11.5"><b>11.5%</b></div></div>
     </div></div>
-  <p class="note">El v4 vive en el B-tree y el buffer manager: cada clave aleatoria cae en una página distinta,
-  casi nunca en cache. El secuencial despacha el índice barato — su CPU se reparte en heap, WAL y generar el uuid.</p>
+  <p class="note">The v4 lives in the B-tree and the buffer manager: every random key lands on a different page,
+  almost never in cache. The sequential one dispatches the index cheaply — its CPU spreads across heap, WAL and generating the uuid.</p>
 </div></section>
 
 <section><div class="wrap">
-  <h2>Los dos flamegraphs</h2>
-  <p class="lead">El ancho de cada bloque = tiempo de CPU. Buscá una función y se resalta en los dos perfiles a la vez:
-  ahí se ve, literalmente, cuánto más ancha es la misma rama en el caso aleatorio.</p>
+  <h2>The two flamegraphs</h2>
+  <p class="lead">The width of each block = CPU time. Search for a function and it highlights in both profiles at once:
+  there you can see, literally, how much wider the same branch is in the random case.</p>
   <div class="tools">
     <div class="search"><span class="mono" style="color:var(--faint)">⌕</span>
-      <input id="q" placeholder="buscar función… p.ej. _bt_compare, ReadBuffer, XLog" autocomplete="off"></div>
+      <input id="q" placeholder="search function… e.g. _bt_compare, ReadBuffer, XLog" autocomplete="off"></div>
     <div class="counts">
       <span class="cpill cool" id="cnt-seq">seq: —</span>
       <span class="cpill hot" id="cnt-v4">v4: —</span>
@@ -182,8 +182,8 @@
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"><span class="chip" data-q="_bt_">_bt_</span><span class="chip" data-q="buffer">buffer</span><span class="chip" data-q="ReadBuffer">ReadBuffer</span><span class="chip" data-q="_bt_compare">_bt_compare</span><span class="chip" data-q="XLog">XLog</span><span class="chip" data-q="heap_insert">heap_insert</span><span class="chip" data-q="random">random</span><span class="chip" data-q="_bt_split">_bt_split</span></div>
   <div class="panels">
     <div class="panel">
-      <div class="phead hot"><span class="dot" style="background:var(--hot)"></span>UUID v4 — aleatorio
-        <span class="badge">3057 muestras · ~12s</span></div>
+      <div class="phead hot"><span class="dot" style="background:var(--hot)"></span>UUID v4 — random
+        <span class="badge">3057 samples · ~12s</span></div>
       <div class="scroll"><div class="flame" id="flame-v4"><?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg viewBox="0 0 1200 918" preserveAspectRatio="xMidYMin meet" width="100%" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -4848,8 +4848,8 @@
 </div></div>
     </div>
     <div class="panel">
-      <div class="phead cool"><span class="dot" style="background:var(--cool)"></span>bigint — secuencial
-        <span class="badge">2202 muestras · ~6s</span></div>
+      <div class="phead cool"><span class="dot" style="background:var(--cool)"></span>bigint — sequential
+        <span class="badge">2202 samples · ~6s</span></div>
       <div class="scroll"><div class="flame cool" id="flame-seq"><?xml version="1.0" standalone="no"?>
 <!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
 <svg viewBox="0 0 1200 870" preserveAspectRatio="xMidYMin meet" width="100%" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -8509,24 +8509,24 @@
 </div></section>
 
 <section><div class="wrap">
-  <h2>Qué leer en cada perfil</h2>
+  <h2>What to read in each profile</h2>
   <div class="takeaway">
-    <div class="card hot"><h3>UUID v4 — la rama del B-tree es enorme</h3>
-      <p>Buscá <span class="k">ReadBuffer</span>: el backend pasa <span class="k">58.8%</span> del CPU
-      pidiendo y evictando páginas, porque cada clave aleatoria necesita una página que casi nunca está en cache.
-      Y <span class="k">_bt_compare</span> sube a <span class="k">12.5%</span>: muchas más comparaciones para ubicar la inserción.</p></div>
-    <div class="card cool"><h3>bigint — el índice casi no aparece</h3>
-      <p>La inserción siempre cae en la última página (la de la derecha), que ya está en cache.
-      El B-tree se despacha en <span class="k">24.6%</span> y el CPU se reparte en lo demás:
-      <span class="k">heap_insert</span> (20%), <span class="k">WAL</span> (16%) y generar el uuid de <span class="k">org_id</span> (26%).</p></div>
+    <div class="card hot"><h3>UUID v4 — the B-tree branch is huge</h3>
+      <p>Search for <span class="k">ReadBuffer</span>: the backend spends <span class="k">58.8%</span> of CPU
+      requesting and evicting pages, because every random key needs a page that's almost never in cache.
+      And <span class="k">_bt_compare</span> climbs to <span class="k">12.5%</span>: many more comparisons to place the insert.</p></div>
+    <div class="card cool"><h3>bigint — the index barely shows up</h3>
+      <p>The insert always lands on the last page (the rightmost one), which is already in cache.
+      The B-tree is dispatched in <span class="k">24.6%</span> and the CPU spreads across the rest:
+      <span class="k">heap_insert</span> (20%), <span class="k">WAL</span> (16%) and generating the <span class="k">org_id</span> uuid (26%).</p></div>
   </div>
-  <p class="note">Ojo: esto es CPU on-CPU. La espera por I/O de leer páginas de disco es off-CPU y no aparece acá —
-  ese costo se vio en el WAL (~3×) y el tiempo (~2×) de los benchmarks.</p>
+  <p class="note">Note: this is on-CPU time. Waiting on I/O to read pages from disk is off-CPU and doesn't show up here —
+  that cost appeared in the WAL (~3×) and the time (~2×) of the benchmarks.</p>
 </div></section>
 
 <footer><div class="wrap">
-  Postgres 15.18 · perf -F 199 --call-graph dwarf · símbolos postgresql-15-dbgsym · FlameGraph (B. Gregg).
-  Perfiles generados en <span class="mono">~/Downloads/uuid-poc</span>.
+  Postgres 15.18 · perf -F 199 --call-graph dwarf · symbols postgresql-15-dbgsym · FlameGraph (B. Gregg).
+  Profiles generated in <span class="mono">~/Downloads/uuid-poc</span>.
 </div></footer>
 
 <div class="detail" id="detail"></div>
@@ -8568,7 +8568,7 @@
   }
   wire(FV); wire(FS);
 
-  // búsqueda -> resaltar en ambos
+  // search -> highlight in both
   var q=document.getElementById('q');
   function apply(term){
     term=term.trim().toLowerCase();
